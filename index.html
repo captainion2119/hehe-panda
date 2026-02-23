@@ -16,8 +16,14 @@
       align-items: center;
       justify-content: center;
       font-family: 'Lora', serif;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: 24px 0;
       cursor: none;
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+      body { cursor: auto; }
     }
 
     /* ── Panda cursor ── */
@@ -50,7 +56,7 @@
     /* ── The letter card ── */
     .card {
       background: #fffdf7;
-      width: min(520px, 90vw);
+      width: min(520px, 92vw);
       border-radius: 4px;
       box-shadow:
         0 2px 0 #e8dcc8,
@@ -89,6 +95,22 @@
         #eae4f5 32px
       );
       pointer-events: none;
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 36px 24px 32px;
+      }
+      .card::after {
+        inset: 72px 24px 32px;
+      }
+      .date-line { padding-right: 48px; font-size: 0.85rem; }
+      .salutation { font-size: 1.3rem; }
+      .body-text { font-size: 0.93rem; line-height: 1.85rem; }
+      .sign-off { font-size: 1.1rem; }
+      .sign-name { font-size: 1.6rem; }
+      .doodles { font-size: 1.2rem; letter-spacing: 4px; }
+      .stamp { font-size: 1.8rem; top: 10px; right: 12px; }
     }
 
     @keyframes floatCard {
@@ -219,16 +241,46 @@
   </div>
 
   <script>
-    // ── Panda follows cursor ──────────────────────────────────────────
+    // ── Panda follows cursor / touch ─────────────────────────────────
     const panda = document.getElementById('panda');
+    const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+
     let px = window.innerWidth / 2, py = window.innerHeight / 2;
     let tx = px, ty = py;
+    let idleT = 0;
 
-    document.addEventListener('mousemove', e => { tx = e.clientX; ty = e.clientY; });
+    if (isTouchDevice) {
+      // On mobile: hide panda initially, show & follow finger on touch
+      panda.style.display = 'none';
+      document.addEventListener('touchstart', e => {
+        panda.style.display = 'block';
+        tx = e.touches[0].clientX;
+        ty = e.touches[0].clientY;
+      }, { passive: true });
+      document.addEventListener('touchmove', e => {
+        tx = e.touches[0].clientX;
+        ty = e.touches[0].clientY;
+      }, { passive: true });
+    } else {
+      document.addEventListener('mousemove', e => { tx = e.clientX; ty = e.clientY; });
+    }
 
     (function animatePanda() {
-      px += (tx - px) * 0.18;
-      py += (ty - py) * 0.18;
+      if (isTouchDevice && panda.style.display === 'none') {
+        requestAnimationFrame(animatePanda);
+        return;
+      }
+      // Gentle idle float when not moving (desktop only)
+      if (!isTouchDevice) {
+        idleT += 0.03;
+        const idleX = Math.sin(idleT * 0.7) * 3;
+        const idleY = Math.sin(idleT) * 3;
+        px += (tx + idleX - px) * 0.14;
+        py += (ty + idleY - py) * 0.14;
+      } else {
+        px += (tx - px) * 0.18;
+        py += (ty - py) * 0.18;
+      }
       panda.style.left = px + 'px';
       panda.style.top  = py + 'px';
       requestAnimationFrame(animatePanda);
